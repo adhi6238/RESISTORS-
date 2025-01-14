@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared Comments and Icon</title>
+    <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-database.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            color: #333;
+            text-align: center;
+        }
+        header {
+            background-color: #0078d7;
+            color: white;
+            padding: 20px;
+        }
+        header img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+        }
+        .comment-section {
+            margin: 20px auto;
+            max-width: 600px;
+        }
+        .comment-section textarea {
+            width: 100%;
+            height: 100px;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .comment-section button {
+            background-color: #0078d7;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .comment-section button:hover {
+            background-color: #005bb5;
+        }
+        .comments {
+            text-align: left;
+            margin-top: 20px;
+        }
+        .comment {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <img id="group-icon" src="default-icon.png" alt="Group Icon">
+        <h1>Shared Comments and Icon</h1>
+        <input type="file" id="icon-uploader" style="margin: 10px;" accept="image/*">
+        <p>Upload an image to change the icon for everyone.</p>
+    </header>
+
+    <div class="comment-section">
+        <textarea id="comment-input" placeholder="Type your comment here..."></textarea>
+        <button onclick="submitComment()">Post Comment</button>
+        <div class="comments" id="comments-container"></div>
+    </div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.getDatabase(app);
+
+        // Icon functionality
+        const iconUploader = document.getElementById('icon-uploader');
+        const groupIcon = document.getElementById('group-icon');
+        const iconRef = firebase.ref(db, 'icon');
+
+        // Fetch and update icon
+        firebase.onValue(iconRef, (snapshot) => {
+            if (snapshot.exists()) {
+                groupIcon.src = snapshot.val();
+            }
+        });
+
+        // Upload and update icon
+        iconUploader.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = () => {
+                firebase.set(iconRef, reader.result); // Save base64 encoded image
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Comment functionality
+        const commentsContainer = document.getElementById('comments-container');
+        const commentsRef = firebase.ref(db, 'comments');
+
+        // Fetch and display comments
+        firebase.onValue(commentsRef, (snapshot) => {
+            commentsContainer.innerHTML = '';
+            if (snapshot.exists()) {
+                const comments = snapshot.val();
+                Object.values(comments).forEach(comment => {
+                    const commentDiv = document.createElement('div');
+                    commentDiv.className = 'comment';
+                    commentDiv.textContent = comment;
+                    commentsContainer.appendChild(commentDiv);
+                });
+            }
+        });
+
+        // Submit a new comment
+        function submitComment() {
+            const commentInput = document.getElementById('comment-input');
+            const newComment = commentInput.value.trim();
+            if (newComment) {
+                const newCommentRef = firebase.push(commentsRef);
+                firebase.set(newCommentRef, newComment);
+                commentInput.value = '';
+            }
+        }
+    </script>
+</body>
+</html>
